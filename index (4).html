@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f3d5e">
+<title>ST Trans · Loading Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#0f3d5e; --brand2:#1b6a9c; --bg:#f3f5f8; --card:#fff; --ink:#1d2733;
+    --muted:#6b7785; --line:#e2e7ee; --ok:#1e8e4e; --okbg:#e5f5ec; --wait:#c27c0e; --waitbg:#fdf3e0;
+    --bad:#c0392b; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  header{background:var(--brand);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  header h1{margin:0;font-size:18px;font-weight:700}
+  header small{display:block;font-size:12px;opacity:.8;font-weight:400}
+  .conn{font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .dot{width:10px;height:10px;border-radius:50%;background:#aaa}
+  .dot.on{background:#3ddc84}.dot.off{background:#ff6b5b}
+  nav{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;overflow-x:auto}
+  nav button{flex:1;min-width:90px;border:0;background:none;padding:12px 8px;font:inherit;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer}
+  nav button.active{color:var(--brand);border-bottom-color:var(--brand2)}
+  nav button span{display:block;font-size:11px;font-weight:400}
+  main{max-width:1000px;margin:0 auto;padding:16px}
+  section{display:none}section.active{display:block}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:14px}
+  .card h2{margin:0 0 12px;font-size:17px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+  input:focus,select:focus{outline:2px solid var(--brand2);border-color:transparent}
+  .btn{display:inline-block;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--brand2);color:#fff}
+  .btn.full{width:100%;margin-top:14px}
+  .btn.ok{background:var(--ok)}
+  .btn.ghost{background:none;color:var(--bad);padding:6px 8px;font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .msg{margin-top:10px;font-size:14px;min-height:20px}
+  .truck{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+  .truck .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .plate{font-size:18px;font-weight:700;direction:ltr}
+  .meta{color:var(--muted);font-size:13px;margin-top:2px}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row input{flex:1}
+  .badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .badge.sent{background:var(--waitbg);color:var(--wait)}
+  .badge.loaded{background:var(--okbg);color:var(--ok)}
+  .empty{text-align:center;color:var(--muted);padding:24px 8px}
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+  th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .filters{display:flex;gap:10px;flex-wrap:wrap}
+  .filters>*{flex:1;min-width:150px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .kpi{background:var(--card);border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .kpi b{display:block;font-size:26px;color:var(--brand)}
+  .kpi span{font-size:12px;color:var(--muted)}
+  .progress{height:18px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:8px}
+  .progress div{height:100%;width:0;background:linear-gradient(90deg,var(--brand2),var(--ok));transition:width .5s}
+  .pcthead{display:flex;justify-content:space-between;font-weight:700}
+  .shifts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .shift{border-radius:12px;padding:14px;background:#f5f5f5;border:2px solid transparent}
+  .shift.now{background:var(--okbg);border-color:var(--ok)}
+  .shift h3{margin:0 0 6px;font-size:15px}
+  .shift p{margin:3px 0;font-size:14px}
+  .targetrow{display:flex;gap:8px;align-items:end}
+  .targetrow div{flex:1}
+  .daylabel{color:var(--muted);font-size:13px;margin-bottom:10px}
+  @media (max-width:600px){
+    .grid2,.shifts{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    main{padding:12px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ST Trans · Loading Tracker</h1>
+    <small>Live truck loading status</small>
+  </div>
+  <div class="conn"><div class="dot" id="connDot"></div><span id="connTxt">Connecting…</span></div>
+</header>
+
+<nav>
+  <button class="active" data-tab="dispatch">Dispatch<span>Send truck</span></button>
+  <button data-tab="loading">Loading<span>Confirm weight</span></button>
+  <button data-tab="tracking">Tracking<span>All trucks</span></button>
+  <button data-tab="dashboard">Dashboard<span>Daily target</span></button>
+</nav>
+
+<main>
+
+  <!-- DISPATCH -->
+  <section id="dispatch" class="active">
+    <div class="card">
+      <h2>Register a truck sent for loading</h2>
+      <div class="grid2">
+        <div><label>Plate number *</label><input id="plate" placeholder="e.g. 12345 PZU" autocomplete="off"></div>
+        <div><label>Driver name</label><input id="driver" autocomplete="off"></div>
+        <div><label>Destination</label><input id="dest" list="destList" autocomplete="off"></div>
+        <div><label>Notes</label><input id="notes" autocomplete="off"></div>
+      </div>
+      <datalist id="destList">
+        <option value="Khartoum"><option value="Abu Hamad"><option value="Atbara"><option value="Berber">
+      </datalist>
+      <button class="btn full" id="sendBtn">Send for loading</button>
+      <div class="msg" id="sendMsg"></div>
+    </div>
+  </section>
+
+  <!-- LOADING -->
+  <section id="loading">
+    <div class="card">
+      <h2>Trucks waiting to be loaded</h2>
+      <input id="loadSearch" placeholder="Search by plate…" autocomplete="off">
+      <div id="pendingList" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- TRACKING -->
+  <section id="tracking">
+    <div class="card">
+      <h2>Truck tracking</h2>
+      <div class="filters">
+        <select id="trkRange">
+          <option value="today">Current day (from 06:00)</option>
+          <option value="all">All trucks</option>
+        </select>
+        <select id="trkStatus">
+          <option value="">All statuses</option>
+          <option value="sent">Waiting</option>
+          <option value="loaded">Loaded</option>
+        </select>
+        <input id="trkSearch" placeholder="Search plate or driver…" autocomplete="off">
+      </div>
+      <div class="tablewrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Plate</th><th>Driver</th><th>Destination</th><th>Sent</th><th>Status</th><th>Loaded at</th><th>Weight (t)</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard">
+    <div class="card">
+      <div class="targetrow">
+        <div><label>Daily target (number of trucks)</label><input id="targetIn" type="number" min="1" inputmode="numeric"></div>
+        <button class="btn" id="targetBtn">Save</button>
+      </div>
+    </div>
+
+    <div class="daylabel" id="dayLabel"></div>
+
+    <div class="kpis">
+      <div class="kpi"><b id="kT">0</b><span>Target</span></div>
+      <div class="kpi"><b id="kS">0</b><span>Sent</span></div>
+      <div class="kpi"><b id="kL">0</b><span>Loaded</span></div>
+      <div class="kpi"><b id="kP">0</b><span>Waiting</span></div>
+      <div class="kpi"><b id="kR">0</b><span>Left to target</span></div>
+      <div class="kpi"><b id="kW">0</b><span>Total weight (t)</span></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="pcthead"><span>Progress</span><span id="kPct">0%</span></div>
+      <div class="progress"><div id="bar"></div></div>
+    </div>
+
+    <div class="shifts">
+      <div class="shift" id="sDay">
+        <h3>Day shift 06:00 – 18:00</h3>
+        <p>Loaded: <b id="dL">0</b> | Waiting: <b id="dP">0</b></p>
+        <p>Weight: <b id="dW">0</b> t</p>
+      </div>
+      <div class="shift" id="sNight">
+        <h3>Night shift 18:00 – 06:00</h3>
+        <p>Loaded: <b id="nL">0</b> | Waiting: <b id="nP">0</b></p>
+        <p>Weight: <b id="nW">0</b> t</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBo-QtankC-GPYrSj9SXEeYEN1EuND4ZaY",
+  authDomain: "loadingdata-6c25f.firebaseapp.com",
+  databaseURL: "https://loadingdata-6c25f-default-rtdb.firebaseio.com",
+  projectId: "loadingdata-6c25f",
+  storageBucket: "loadingdata-6c25f.firebasestorage.app",
+  messagingSenderId: "988409234380",
+  appId: "1:988409234380:web:420e859e75c081fd05d369"
+});
+
+const database = firebase.database();
+const trucksRef = database.ref("trucks");
+const targetRef = database.ref("settings/target");
+const $ = id => document.getElementById(id);
+
+let all = {};
+let target = 0;
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = ts => {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return d.toLocaleDateString("en-GB",{day:"2-digit",month:"2-digit"}) + " " +
+         d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+};
+function dayWindow(now = new Date()){
+  const s = new Date(now);
+  s.setHours(6,0,0,0);
+  if (now < s) s.setDate(s.getDate() - 1);
+  const st = s.getTime();
+  return { st, mid: st + 12*3600e3, end: st + 24*3600e3, date: s };
+}
+const list = () => Object.entries(all).map(([id,t]) => ({id, ...t}));
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll("section").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  $(b.dataset.tab).classList.add("active");
+});
+
+/* ---------- connection status ---------- */
+database.ref(".info/connected").on("value", s => {
+  const on = s.val() === true;
+  $("connDot").className = "dot " + (on ? "on" : "off");
+  $("connTxt").textContent = on ? "Online" : "Offline";
+});
+
+/* ---------- dispatch ---------- */
+$("sendBtn").onclick = async () => {
+  const plate = $("plate").value.trim();
+  const msg = $("sendMsg");
+  if (!plate) { msg.style.color = "var(--bad)"; msg.textContent = "Enter the plate number first"; return; }
+  const dup = list().find(t => t.status === "sent" && t.plate.replace(/\s/g,"") === plate.replace(/\s/g,""));
+  if (dup && !confirm("Truck " + plate + " is already registered and waiting. Register it again?")) return;
+  await trucksRef.push({
+    plate,
+    driver: $("driver").value.trim(),
+    dest: $("dest").value.trim(),
+    notes: $("notes").value.trim(),
+    status: "sent",
+    sentAt: firebase.database.ServerValue.TIMESTAMP
+  });
+  ["plate","driver","dest","notes"].forEach(id => $(id).value = "");
+  msg.style.color = "var(--ok)";
+  msg.textContent = "✓ Truck " + plate + " registered";
+  setTimeout(() => msg.textContent = "", 4000);
+};
+
+/* ---------- loading (employee) ---------- */
+function renderPending(){
+  const q = $("loadSearch").value.trim().toLowerCase();
+  const pend = list().filter(t => t.status === "sent" && (!q || (t.plate||"").toLowerCase().includes(q)))
+                     .sort((a,b) => (a.sentAt||0) - (b.sentAt||0));
+  if (!pend.length) { $("pendingList").innerHTML = '<div class="empty">No trucks waiting ✓</div>'; return; }
+  $("pendingList").innerHTML = pend.map(t => `
+    <div class="truck">
+      <div class="top">
+        <div>
+          <div class="plate">${esc(t.plate)}</div>
+          <div class="meta">${esc(t.driver) || "—"} · ${esc(t.dest) || "—"} · Sent ${fmt(t.sentAt)}</div>
+          ${t.notes ? `<div class="meta">📝 ${esc(t.notes)}</div>` : ""}
+        </div>
+        <span class="badge sent">Waiting</span>
+      </div>
+      <div class="row">
+        <input type="number" step="0.01" min="0" inputmode="decimal" placeholder="Weight (tons)" id="w_${t.id}">
+        <button class="btn ok" onclick="markLoaded('${t.id}')">Loaded</button>
+      </div>
+    </div>`).join("");
+}
+$("loadSearch").oninput = renderPending;
+
+function markLoaded(id){
+  const t = all[id]; if (!t) return;
+  const w = parseFloat($("w_" + id).value);
+  if (!(w > 0)) { alert("Enter the weight first"); return; }
+  if (!confirm("Confirm truck " + t.plate + " loaded with " + w + " t?")) return;
+  trucksRef.child(id).update({
+    status: "loaded",
+    weight: w,
+    loadedAt: firebase.database.ServerValue.TIMESTAMP
+  });
+}
+
+/* ---------- tracking ---------- */
+function renderTracking(){
+  const range = $("trkRange").value, st = $("trkStatus").value;
+  const q = $("trkSearch").value.trim().toLowerCase();
+  const w = dayWindow();
+  const items = list().filter(t =>
+      (range === "all" || (t.sentAt >= w.st && t.sentAt < w.end)) &&
+      (!st || t.status === st) &&
+      (!q || (t.plate||"").toLowerCase().includes(q) || (t.driver||"").toLowerCase().includes(q)))
+    .sort((a,b) => (b.sentAt||0) - (a.sentAt||0));
+  $("rows").innerHTML = items.length ? items.map(t => `
+    <tr>
+      <td class="plate" style="font-size:15px">${esc(t.plate)}</td>
+      <td>${esc(t.driver) || "—"}</td>
+      <td>${esc(t.dest) || "—"}</td>
+      <td>${fmt(t.sentAt)}</td>
+      <td><span class="badge ${t.status}">${t.status === "loaded" ? "Loaded" : "Waiting"}</span></td>
+      <td>${fmt(t.loadedAt)}</td>
+      <td>${t.weight ? t.weight.toFixed(2) : "—"}</td>
+      <td><button class="btn ghost" onclick="removeTruck('${t.id}')">Delete</button></td>
+    </tr>`).join("") : '<tr><td colspan="8" class="empty">No data</td></tr>';
+}
+["trkRange","trkStatus"].forEach(id => $(id).onchange = renderTracking);
+$("trkSearch").oninput = renderTracking;
+
+function removeTruck(id){
+  const t = all[id]; if (!t) return;
+  if (confirm("Permanently delete truck " + t.plate + "? This cannot be undone.")) trucksRef.child(id).remove();
+}
+
+/* ---------- dashboard ---------- */
+targetRef.on("value", s => { target = s.val() || 0; $("targetIn").value = target || ""; updateDash(); });
+$("targetBtn").onclick = () => {
+  const v = parseInt($("targetIn").value);
+  if (v > 0) targetRef.set(v); else alert("Enter a valid number");
+};
+
+function updateDash(){
+  const now = new Date(), w = dayWindow(now);
+  const inR = (t,a,b) => t.sentAt >= a && t.sentAt < b;
+  const today = list().filter(t => inR(t, w.st, w.end));
+  const stats = arr => {
+    const l = arr.filter(t => t.status === "loaded");
+    return { L: l.length, P: arr.length - l.length, W: l.reduce((a,t) => a + (t.weight||0), 0) };
+  };
+  const T = stats(today), D = stats(today.filter(t => inR(t, w.st, w.mid))), N = stats(today.filter(t => inR(t, w.mid, w.end)));
+  const pct = target ? Math.min(100, Math.round(T.L / target * 100)) : 0;
+
+  $("dayLabel").textContent = "Working day: " + w.date.toLocaleDateString("en-GB") + " (06:00 → 06:00)";
+  $("kT").textContent = target; $("kS").textContent = today.length; $("kL").textContent = T.L;
+  $("kP").textContent = T.P; $("kR").textContent = Math.max(0, target - T.L); $("kW").textContent = T.W.toFixed(1);
+  $("kPct").textContent = pct + "%"; $("bar").style.width = pct + "%";
+  $("dL").textContent = D.L; $("dP").textContent = D.P; $("dW").textContent = D.W.toFixed(1);
+  $("nL").textContent = N.L; $("nP").textContent = N.P; $("nW").textContent = N.W.toFixed(1);
+
+  const isDay = now.getTime() < w.mid;
+  $("sDay").classList.toggle("now", isDay);
+  $("sNight").classList.toggle("now", !isDay);
+}
+
+/* ---------- live data ---------- */
+trucksRef.on("value", s => {
+  all = s.val() || {};
+  renderPending(); renderTracking(); updateDash();
+});
+setInterval(() => { renderTracking(); updateDash(); }, 60000);
+</script>
+</body>
+</html>
